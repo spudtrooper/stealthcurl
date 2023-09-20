@@ -48,14 +48,18 @@ async function main() {
         "-f, --file <filePath>",
         "Specify a file containing the curl command"
       )
+      .option(
+        "-p, --post_process_js <javascript>",
+        "A JS function that consumes the output and returns the new output",
+      )
       .parse(process.argv);
 
-    const options = program.opts();
+    const opts = program.opts();
 
     let curlCommand = "";
 
-    if (options.file) {
-      curlCommand = await fs.readFile(options.file, "utf8");
+    if (opts.file) {
+      curlCommand = await fs.readFile(opts.file, "utf8");
     } else {
       const args = program.args;
       curlCommand = args.join(" ");
@@ -65,7 +69,12 @@ async function main() {
       throw new Error("No curl command provided");
     }
 
-    const res = await curlToPuppeteer(curlCommand);
+    let res = await curlToPuppeteer(curlCommand);
+
+    if (opts.post_process_js) {
+      res = eval("(" + opts.post_process_js + ")(" + JSON.stringify(res) + ")");
+    }
+
     console.log(res);
   } catch (error) {
     console.error("Error:", error);
